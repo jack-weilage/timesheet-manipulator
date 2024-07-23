@@ -1,0 +1,12 @@
+[package]
+name = "timesheet-native"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+calamine = "0.25.0"
+eframe = "0.28.1"
+eyre = "0.6.12"
+rfd = "0.14.1"
+rust_xlsxwriter = { version = "0.71.0", features = ["serde"] }
+serde = "1.0.204"
