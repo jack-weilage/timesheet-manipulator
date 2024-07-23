@@ -1,6 +1,6 @@
 use eframe::egui::{self, Button, CentralPanel, ViewportBuilder};
 use eyre::{OptionExt, Result};
-use native_dialog::{FileDialog, MessageDialog};
+use rfd::{FileDialog, MessageDialog};
 
 mod parser;
 
@@ -33,11 +33,10 @@ impl eframe::App for App {
 
             if let Err(e) = browse_button(ui) {
                 MessageDialog::new()
-                    .set_type(native_dialog::MessageType::Error)
+                    .set_level(rfd::MessageLevel::Error)
                     .set_title("Encountered an error")
-                    .set_text(&e.to_string())
-                    .show_alert()
-                    .expect("Failed to display dialog");
+                    .set_description(e.to_string())
+                    .show();
             }
         });
     }
@@ -50,30 +49,29 @@ fn browse_button(ui: &mut egui::Ui) -> Result<()> {
     {
         let input = FileDialog::new()
             .add_filter("Excel Spreadsheet", &["xlsx", "xls"])
-            .show_open_single_file()?
+            .pick_file()
             .ok_or_eyre("User closed input file picker")?;
 
         let records = parser::read_records_from_file(input)?;
 
         let output = FileDialog::new()
-            .set_filename("Report.xlsx")
+            .set_file_name("Report.xlsx")
             .add_filter("Excel Spreadsheet", &["xlsx", "xls"])
-            .show_save_single_file()?
+            .save_file()
             .ok_or_eyre("User closed output file picker")?;
 
         let records_count = records.len();
         parser::write_records_to_file(output.clone(), records)?;
 
         MessageDialog::new()
-            .set_type(native_dialog::MessageType::Info)
-            .set_title("Completed")
-            .set_text(&format!(
+            .set_level(rfd::MessageLevel::Info)
+            .set_title("Success")
+            .set_description(format!(
                 "Completed writing to {} ({} rows)",
                 output.display(),
                 records_count + 1
             ))
-            .show_alert()
-            .expect("Failed to create completion dialog");
+            .show();
     }
     Ok(())
 }
