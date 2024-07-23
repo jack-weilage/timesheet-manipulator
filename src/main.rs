@@ -1,6 +1,4 @@
-use std::path::PathBuf;
-
-use eframe::egui::{self, CentralPanel, ViewportBuilder};
+use eframe::egui::{self, Button, CentralPanel, ViewportBuilder};
 use eyre::{OptionExt, Result};
 use native_dialog::{FileDialog, MessageDialog};
 
@@ -9,7 +7,7 @@ mod parser;
 fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
         viewport: ViewportBuilder::default()
-            .with_inner_size([240.0, 240.0])
+            .with_inner_size([240.0, 110.0])
             .with_resizable(false)
             .with_drag_and_drop(true),
         ..Default::default()
@@ -31,6 +29,8 @@ impl eframe::App for App {
             ui.label("Browse to the data file.");
             ui.label("Once parsing is complete, choose the location to save the new file.");
 
+            ui.add_space(10.0);
+
             if let Err(e) = browse_button(ui) {
                 MessageDialog::new()
                     .set_type(native_dialog::MessageType::Error)
@@ -44,7 +44,10 @@ impl eframe::App for App {
 }
 
 fn browse_button(ui: &mut egui::Ui) -> Result<()> {
-    if ui.button("Browse").clicked() {
+    if ui
+        .add(Button::new("Browse").min_size([ui.max_rect().width(), 30.0].into()))
+        .clicked()
+    {
         let input = FileDialog::new()
             .add_filter("Excel Spreadsheet", &["xlsx", "xls"])
             .show_open_single_file()?
@@ -58,12 +61,17 @@ fn browse_button(ui: &mut egui::Ui) -> Result<()> {
             .show_save_single_file()?
             .ok_or_eyre("User closed output file picker")?;
 
+        let records_count = records.len();
         parser::write_records_to_file(output.clone(), records)?;
 
         MessageDialog::new()
             .set_type(native_dialog::MessageType::Info)
             .set_title("Completed")
-            .set_text(&format!("Completed writing to {}", output.display()))
+            .set_text(&format!(
+                "Completed writing to {} ({} rows)",
+                output.display(),
+                records_count + 1
+            ))
             .show_alert()
             .expect("Failed to create completion dialog");
     }
