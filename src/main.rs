@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 
 use eframe::egui::{self, CentralPanel, ViewportBuilder};
-use rfd::FileDialog;
+use eyre::{OptionExt, Result};
+use native_dialog::{FileDialog, MessageDialog};
 
 mod parser;
 
@@ -22,32 +23,49 @@ fn main() -> eframe::Result {
 }
 
 #[derive(Default)]
-struct App {
-    input_path: Option<PathBuf>,
-    output_path: Option<PathBuf>,
-}
+struct App;
+
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         CentralPanel::default().show(ctx, |ui| {
             ui.label("Browse to the data file.");
             ui.label("Once parsing is complete, choose the location to save the new file.");
 
-            if ui.button("Browse").clicked() {
-                if let Some(path) = FileDialog::new()
-                    .add_filter("Excel Spreadsheet", &["xls", "xlsx"])
-                    .pick_file()
-                {
-                    self.input_path = Some(path);
-                }
-            }
-            if let Some(path) = &self.input_path {
-                if let Some(path) = path.file_name() {
-                    ui.horizontal(|ui| {
-                        ui.label("Picked file:");
-                        ui.monospace(path.to_string_lossy());
-                    });
-                }
+            if let Err(e) = browse_button(ui) {
+                MessageDialog::new()
+                    .set_type(native_dialog::MessageType::Error)
+                    .set_title("Encountered an error")
+                    .set_text(&e.to_string())
+                    .show_alert()
+                    .expect("Failed to display dialog");
             }
         });
     }
+}
+
+fn browse_button(ui: &mut egui::Ui) -> Result<()> {
+    if ui.button("Browse").clicked() {
+        let input = FileDialog::new()
+            .add_filter("Excel Spreadsheet", &["xlsx", "xls"])
+            .show_open_single_file()?
+            .ok_or_eyre("User closed input file picker")?;
+
+        let records = parser::read_records_from_file(input)?;
+
+        let output = FileDialog::new()
+            .set_filename("Report.xlsx")
+            .add_filter("Excel Spreadsheet", &["xlsx", "xls"])
+            .show_save_single_file()?
+            .ok_or_eyre("User closed output file picker")?;
+
+        parser::write_records_to_file(output.clone(), records)?;
+
+        MessageDialog::new()
+            .set_type(native_dialog::MessageType::Info)
+            .set_title("Completed")
+            .set_text(&format!("Completed writing to {}", output.display()))
+            .show_alert()
+            .expect("Failed to create completion dialog");
+    }
+    Ok(())
 }
