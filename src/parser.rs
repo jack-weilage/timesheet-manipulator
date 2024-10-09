@@ -116,7 +116,7 @@ pub fn read_records_from_file(file: PathBuf) -> Result<Vec<DailyRecord>> {
     Ok(daily_records)
 }
 
-pub fn write_records_to_file(file: PathBuf, records: Vec<DailyRecord>) -> Result<()> {
+pub fn write_records_to_file(file: &PathBuf, records: Vec<DailyRecord>) -> Result<()> {
     let mut workbook = Workbook::new();
     let worksheet = workbook.add_worksheet();
 

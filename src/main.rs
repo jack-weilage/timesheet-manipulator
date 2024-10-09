@@ -61,7 +61,7 @@ fn browse_button(ui: &mut egui::Ui) -> Result<()> {
             .ok_or_eyre("User closed output file picker")?;
 
         let records_count = records.len();
-        parser::write_records_to_file(output.clone(), records)?;
+        parser::write_records_to_file(&output, records)?;
 
         MessageDialog::new()
             .set_level(rfd::MessageLevel::Info)
